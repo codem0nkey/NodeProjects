@@ -1,0 +1,95 @@
+.App {
+    width: 100vw;
+    height: 100vh;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #0d1114;
+    background-image: linear-gradient(180deg, #0d1114 0%, #30344b 75%); 
+}
+
+.Navbar {
+    background-color: #0d1114;
+    width: 100%;
+    height: 55px;
+    font-family: Avenir-Light, Arial, Helvetica, sans-serif;
+    display: flex;
+    position: -webkit -sticky;
+    position: sticky;
+    top: 0;
+}
+
+.Navbar .leftSide {
+    flex: 20%;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+
+.Navbar .center {
+    flex: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.Navbar .rightSide {
+    flex: 20%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.Navbar .leftSide .Links {
+    max-height: 55px;
+}
+
+.Navbar .center .Links {
+    max-height: 55px;
+}
+
+.Navbar .rightSide .Links {
+    max-height: 55px;
+}
+
+.Navbar .leftSide .Links a {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    margin-left: 50px;
+}
+
+.Navbar .center .Links a {
+    text-decoration: none;
+    color: white;
+    font-size: 30px;
+    margin-left: 50px;
+}
+
+.Navbar .rightSide .Links a {
+    text-decoration: none;
+    color: white;
+    font-size: 18px;
+    margin-right: 25px;
+}
+
+.Feature {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.FeatureRow {
+    width: 100%;
+}
+
+.rowName {
+    color: white;
+    font-family: Avenir-Light, Arial, Helvetica, sans-serif;
+    font-size: 20px;
+    margin-left: 40px
+}
