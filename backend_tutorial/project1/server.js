@@ -2,10 +2,9 @@ const express = require('express')
 const app = express()
 const PORT = 7777
 
-let data = {
-    firstName: "Marc",
-    lastName: "Davis"
-}
+let data = [
+    {name: "Marc"}
+]
 
 //Middleware
 app.use(express.json())
@@ -29,11 +28,11 @@ app.get('/api/data', (req, res) => {
     res.send(data)
 })
 
-app.post('/api/data', (req, res) => {
-    const newEntry = req.body
-    console.log(newEntry)
+app.post('/api/data/adduser', (req,res) => {
+    const newUser = req.body
+    console.log(newUser)
     res.sendStatus(201)
-    data = newEntry
+    data.push({"name": newUser.name})
 })
 
 

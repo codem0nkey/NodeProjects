@@ -8,10 +8,9 @@ GET http://localhost:7777/dashboard
 GET http://localhost:7777/api/data
 
 ### TEST POST /api/data
-POST http://localhost:7777/api/data
+POST http://localhost:7777/api/data/addUser
 Content-Type: application/json
 
 {
-    "firstName": "Freak",
-    "lastName": "Train"
+    "name": "Gene"
 }
