@@ -31,8 +31,8 @@ app.get('/api/data', (req, res) => {
 app.post('/api/data/adduser', (req,res) => {
     const newUser = req.body
     console.log(newUser)
-    res.sendStatus(201)
     data.push({"name": newUser.name})
+    res.sendStatus(201)
 })
 
 

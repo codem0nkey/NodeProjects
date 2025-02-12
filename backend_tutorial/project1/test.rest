@@ -12,5 +12,5 @@ POST http://localhost:7777/api/data/addUser
 Content-Type: application/json
 
 {
-    "name": "Gene"
+    "name": "Marcus"
 }
