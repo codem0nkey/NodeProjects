@@ -3,9 +3,12 @@ const app = express()
 const PORT = 7777
 
 let data = {
-    FirstName: "Marc",
-    LastName: "Davis"
+    firstName: "Marc",
+    lastName: "Davis"
 }
+
+//Middleware
+app.use(express.json())
 
 //Website endpoints
 
@@ -24,6 +27,13 @@ app.get('/dashboard', (req, res) => {
 app.get('/api/data', (req, res) => {
     console.log('API GET Request on /api/data ')
     res.send(data)
+})
+
+app.post('/api/data', (req, res) => {
+    const newEntry = req.body
+    console.log(newEntry)
+    res.sendStatus(201)
+    data = newEntry
 })
 
 
