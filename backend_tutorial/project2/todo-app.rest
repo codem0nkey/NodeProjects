@@ -1,6 +1,7 @@
 ### GET /
 GET http://localhost:5000
 
+
 ### Register a user /auth/register
 POST http://localhost:5000/auth/register 
 Content-Type: application/json
