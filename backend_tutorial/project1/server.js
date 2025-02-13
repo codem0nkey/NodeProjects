@@ -35,5 +35,11 @@ app.post('/api/data/adduser', (req,res) => {
     res.sendStatus(201)
 })
 
+app.delete('/api/data/deleteuser', (req, res) => {
+    data.pop()
+    res.sendStatus(200)
+    console.log("Newest User Deleted")
+})
+
 
 app.listen(PORT, () => console.log (`Server has started on: ${PORT}`))
