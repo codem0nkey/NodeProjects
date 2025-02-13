@@ -12,7 +12,7 @@ POST http://localhost:7777/api/data/addUser
 Content-Type: application/json
 
 {
-    "name": "Erik"
+    "name": "Marc"
 }
 
 ### TEST DELETE /api/data/deleteUser
