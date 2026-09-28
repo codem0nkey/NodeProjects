@@ -6,6 +6,16 @@ export default function App() {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ title: '', author: '', content: '' });
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No Date';
+    const parsed = new Date(dateString);
+    return isNaN(parsed.getTime()) ? 'No Date' : parsed.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   const fetchArticles = async () => {
     try {
       const res = await fetch('/api/articles');
@@ -48,7 +58,7 @@ export default function App() {
           <div className="detail-view">
             <button className="back-btn" onClick={() => setSelectedArticle(null)}>← Back to Catalog</button>
             <h1 className="detail-title">{selectedArticle.title}</h1>
-            <div className="detail-meta">By {selectedArticle.author} • {new Date(selectedArticle.createdAt).toLocaleDateString()}</div>
+            <div className="detail-meta">By {selectedArticle.author} • {formatDate(selectedArticle.createdAt)}</div>
             <p className="detail-content">{selectedArticle.content}</p>
           </div>
         ) : (
@@ -62,7 +72,7 @@ export default function App() {
               {articles.map((art) => (
                 <div key={art._id} className="card" onClick={() => setSelectedArticle(art)}>
                   <div className="card-title">{art.title}</div>
-                  <div className="card-author">By {art.author}</div>
+                  <div className="card-author">By {art.author} {art.createdAt && `• ${formatDate(art.createdAt)}`}</div>
                 </div>
               ))}
             </div>
