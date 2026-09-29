@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // Reusable Netflix-style Category Row
-function CategoryRow({ category, articles, onSelectArticle, formatDate }) {
+function CategoryRow({ category, articles, onSelectArticle, onTagClick, formatDate }) {
   const rowRef = useRef(null);
 
   const scroll = (direction) => {
@@ -17,7 +17,11 @@ function CategoryRow({ category, articles, onSelectArticle, formatDate }) {
 
   return (
     <div className="category-row">
-      <h2 className="category-title">{category}</h2>
+      <div className="category-header">
+        <h2 className="category-title" onClick={() => onTagClick(category)} style={{ cursor: 'pointer' }}>
+          {category} <span className="category-arrow">›</span>
+        </h2>
+      </div>
       <div className="slider-wrapper">
         <button className="slider-arrow left" onClick={() => scroll('left')}>‹</button>
         <div className="slider-container" ref={rowRef}>
@@ -63,10 +67,15 @@ export default function App() {
 
   useEffect(() => { fetchArticles(); }, []);
 
+  // Filter and reset back to main view when a tag is clicked
+  const handleTagClick = (tagName) => {
+    setSelectedArticle(null);
+    setSearchTerm(tagName);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Split comma-separated string into clean array
       const parsedTags = formData.tags
         ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
         : ['General'];
@@ -87,14 +96,14 @@ export default function App() {
       if (res.ok) {
         setFormData({ title: '', author: '', content: '', tags: '' });
         setShowModal(false);
-        fetchArticles(); // Refresh catalog after posting
+        fetchArticles();
       }
     } catch (err) {
       console.error('Failed to save article', err);
     }
   };
 
-  // Filter articles by search term
+  // Filter articles by search term or tag
   const filteredArticles = articles.filter((art) => {
     const query = searchTerm.toLowerCase();
     const articleTags = Array.isArray(art.tags) && art.tags.length > 0 ? art.tags : ['General'];
@@ -134,6 +143,9 @@ export default function App() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
+          {searchTerm && (
+            <button className="clear-search-btn" onClick={() => setSearchTerm('')}>✕</button>
+          )}
         </div>
         <button className="add-btn" onClick={() => setShowModal(true)}>+ Add Article</button>
       </nav>
@@ -146,24 +158,41 @@ export default function App() {
             <div className="detail-meta">
               By {selectedArticle.author} • {formatDate(selectedArticle.createdAt)}
             </div>
-            {Array.isArray(selectedArticle.tags) && (
+
+            {Array.isArray(selectedArticle.tags) && selectedArticle.tags.length > 0 && (
               <div className="tag-list">
                 {selectedArticle.tags.map((tag, idx) => (
-                  <span key={idx} className="tag-badge">{tag}</span>
+                  <span
+                    key={idx}
+                    className="tag-badge clickable"
+                    onClick={() => handleTagClick(tag)}
+                    title={`Filter articles by ${tag}`}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {tag}
+                  </span>
                 ))}
               </div>
             )}
+
             <p className="detail-content">{selectedArticle.content}</p>
           </div>
         ) : (
           <>
             <div className="hero-banner">
               <h1>Tech Articles</h1>
-              <p>Get the tech info you need.</p>
+              {searchTerm ? (
+                <p>Showing articles tagged with: <strong>"{searchTerm}"</strong></p>
+              ) : (
+                <p>Get the tech info you need.</p>
+              )}
             </div>
 
             {Object.keys(groupedArticles).length === 0 ? (
-              <p className="no-results">No articles found matching your query.</p>
+              <div className="no-results">
+                <p>No articles found matching "{searchTerm}".</p>
+                <button className="back-btn" onClick={() => setSearchTerm('')}>Clear Filter</button>
+              </div>
             ) : (
               Object.entries(groupedArticles).map(([category, categoryArticles]) => (
                 <CategoryRow
@@ -171,6 +200,7 @@ export default function App() {
                   category={category}
                   articles={categoryArticles}
                   onSelectArticle={setSelectedArticle}
+                  onTagClick={handleTagClick}
                   formatDate={formatDate}
                 />
               ))
