@@ -68,8 +68,12 @@ export default function App() {
     try {
       const payload = {
         ...formData,
-        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : ['General']
+        tags: formData.tags
+          ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+          : ['General']
       };
+
+      console.log('Submitting Payload:', payload);
 
       const res = await fetch('/api/articles', {
         method: 'POST',
@@ -90,21 +94,27 @@ export default function App() {
   // Filter articles based on search query
   const filteredArticles = articles.filter((art) => {
     const query = searchTerm.toLowerCase();
-    const tagMatches = art.tags?.some(t => t.toLowerCase().includes(query));
+    const articleTags = Array.isArray(art.tags) ? art.tags : ['General'];
+    const tagMatches = articleTags.some(t => String(t).toLowerCase().includes(query));
+
     return (
-      art.title?.toLowerCase().includes(query) ||
-      art.author?.toLowerCase().includes(query) ||
-      art.content?.toLowerCase().includes(query) ||
+      (art.title && art.title.toLowerCase().includes(query)) ||
+      (art.author && art.author.toLowerCase().includes(query)) ||
+      (art.content && art.content.toLowerCase().includes(query)) ||
       tagMatches
     );
   });
 
   // Group filtered articles by unique tags
   const groupedArticles = filteredArticles.reduce((acc, article) => {
-    const tags = article.tags && article.tags.length > 0 ? article.tags : ['General'];
-    tags.forEach((tag) => {
+    const rawTags = Array.isArray(article.tags) && article.tags.length > 0 ? article.tags : ['General'];
+    const uniqueTags = [...new Set(rawTags.map(t => String(t).trim()).filter(Boolean))];
+
+    uniqueTags.forEach((tag) => {
       if (!acc[tag]) acc[tag] = [];
-      acc[tag].push(article);
+      if (!acc[tag].some(a => a._id === article._id)) {
+        acc[tag].push(article);
+      }
     });
     return acc;
   }, {});
@@ -133,7 +143,7 @@ export default function App() {
             <div className="detail-meta">
               By {selectedArticle.author} • {formatDate(selectedArticle.createdAt)}
             </div>
-            {selectedArticle.tags && (
+            {Array.isArray(selectedArticle.tags) && (
               <div className="tag-list">
                 {selectedArticle.tags.map((tag, idx) => (
                   <span key={idx} className="tag-badge">{tag}</span>
@@ -181,7 +191,7 @@ export default function App() {
               </div>
               <div className="form-group">
                 <label>Category Tags (comma-separated, e.g. React, Kubernetes)</label>
-                <input type="text" placeholder="DevOps, React, Cloud" value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} />
+                <input type="text" placeholder="DevOps, React, Cloud" value={formData.tags || ''} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} />
               </div>
               <div className="form-group">
                 <label>Content</label>

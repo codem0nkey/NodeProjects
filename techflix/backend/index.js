@@ -12,36 +12,28 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// Define Schema
+// 1. Explicit schema definition with strict: false
 const articleSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
   author: { type: String, required: true },
   tags: { type: [String], default: ['General'] }
 }, {
-  timestamps: true
+  timestamps: true,
+  strict: false // FORCES Mongoose to save tags even if schema validation skips it
 });
 
-articleSchema.index({ title: 'text', content: 'text', tags: 'text' });
+// Clear any cached model if it exists
+if (mongoose.models.Article) {
+  delete mongoose.models.Article;
+}
 
 const Article = mongoose.model('Article', articleSchema);
 
 // GET /api/articles
 app.get('/api/articles', async (req, res) => {
   try {
-    const articles = await Article.find().sort({ createdAt: -1 });
-    res.json(articles);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/articles/search
-app.get('/api/articles/search', async (req, res) => {
-  try {
-    const { q } = req.query;
-    if (!q) return res.status(400).json({ message: 'Search query is required' });
-    const articles = await Article.find({ $text: {$search: q } });
+    const articles = await Article.find().sort({ createdAt: -1 }).lean();
     res.json(articles);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -51,22 +43,19 @@ app.get('/api/articles/search', async (req, res) => {
 // POST /api/articles
 app.post('/api/articles', async (req, res) => {
   try {
-    console.log('--- INCOMING POST BODY ---', req.body);
-
     const { title, content, author, tags } = req.body;
+
     if (!title || !content || !author) {
       return res.status(400).json({ error: 'Title, content, and author are required.' });
     }
 
-    // Ensure tags is always a clean array of non-empty strings
+    // Process tags into array
     let parsedTags = ['General'];
     if (Array.isArray(tags) && tags.length > 0) {
       parsedTags = tags.map(t => String(t).trim()).filter(Boolean);
     } else if (typeof tags === 'string' && tags.trim()) {
       parsedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
     }
-
-    console.log('--- PARSED TAGS ARRAY ---', parsedTags);
 
     const newArticle = new Article({
       title,
@@ -76,7 +65,13 @@ app.post('/api/articles', async (req, res) => {
     });
 
     const savedArticle = await newArticle.save();
-    console.log('--- SAVED MONGO DOCUMENT ---', savedArticle);
+    res.status(201).json(savedArticle);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+    console.log('Document inserted in DB:', savedArticle);
 
     res.status(201).json(savedArticle);
   } catch (err) {
