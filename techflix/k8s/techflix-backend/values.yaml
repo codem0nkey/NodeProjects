@@ -1,0 +1,19 @@
+replicaCount: 1
+
+image:
+  repository: marcdavis25/techflix-backend
+  pullPolicy: Always
+  tag: "latest"
+
+service:
+  type: NodePort
+  port: 5000
+  targetPort: 5000
+  nodePort: 30500
+
+mongodb:
+  host: "mongo-mongodb.default.svc.cluster.local"
+  port: "27017"
+  database: "techflix"
+  secretName: "mongo-mongodb"
+  secretKey: "mongodb-root-password"
