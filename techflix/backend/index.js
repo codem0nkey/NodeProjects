@@ -12,7 +12,7 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// 1. Explicit schema definition with strict: false
+// 1. Explicit schema definition
 const articleSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
@@ -20,10 +20,10 @@ const articleSchema = new mongoose.Schema({
   tags: { type: [String], default: ['General'] }
 }, {
   timestamps: true,
-  strict: false // FORCES Mongoose to save tags even if schema validation skips it
+  strict: false
 });
 
-// Clear any cached model if it exists
+// Clear cached model if it exists
 if (mongoose.models.Article) {
   delete mongoose.models.Article;
 }
@@ -65,12 +65,6 @@ app.post('/api/articles', async (req, res) => {
     });
 
     const savedArticle = await newArticle.save();
-    res.status(201).json(savedArticle);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
     console.log('Document inserted in DB:', savedArticle);
 
     res.status(201).json(savedArticle);
