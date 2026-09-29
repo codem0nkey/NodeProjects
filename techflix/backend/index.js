@@ -13,20 +13,22 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// Schema Definition: Enable native Mongoose timestamps
+// Schema Definition with Tags & Timestamps
 const articleSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
-  author: { type: String, required: true }
+  author: { type: String, required: true },
+  tags: { type: [String], default: ['General'] }
 }, {
-  timestamps: true // Mongoose automatically manages createdAt and updatedAt
+  timestamps: true
 });
 
-articleSchema.index({ title: 'text', content: 'text' });
+// Full-Text Index on title, content, and tags
+articleSchema.index({ title: 'text', content: 'text', tags: 'text' });
 
 const Article = mongoose.model('Article', articleSchema);
 
-// GET /api/articles
+// GET /api/articles (Fetch all articles sorted newest first)
 app.get('/api/articles', async (req, res) => {
   try {
     const articles = await Article.find().sort({ createdAt: -1 });
@@ -36,7 +38,7 @@ app.get('/api/articles', async (req, res) => {
   }
 });
 
-// Updated Search Route using the Text Index
+// GET /api/articles/search (Dedicated MongoDB Text Search)
 app.get('/api/articles/search', async (req, res) => {
   try {
     const { q } = req.query;
@@ -44,26 +46,33 @@ app.get('/api/articles/search', async (req, res) => {
       return res.status(400).json({ message: 'Search query is required' });
     }
 
-    // Uses the text index for fast full-text searching
     const articles = await Article.find({
-      $text: { $search: q }
+      $text: {$search: q }
     });
 
     res.json(articles);
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
 // POST /api/articles
 app.post('/api/articles', async (req, res) => {
   try {
-    const { title, content, author } = req.body;
+    const { title, content, author, tags } = req.body;
     if (!title || !content || !author) {
       return res.status(400).json({ error: 'Title, content, and author are required.' });
     }
 
-    const newArticle = new Article({ title, content, author });
+    // Process comma-separated tags or array
+    let processedTags = ['General'];
+    if (Array.isArray(tags) && tags.length > 0) {
+      processedTags = tags.map(t => t.trim()).filter(Boolean);
+    } else if (typeof tags === 'string' && tags.trim()) {
+      processedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+    }
+
+    const newArticle = new Article({ title, content, author, tags: processedTags });
     const savedArticle = await newArticle.save();
 
     res.status(201).json(savedArticle);

@@ -1,12 +1,44 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+
+// Reusable Category Row with Navigation Arrows
+function CategoryRow({ category, articles, onSelectArticle, formatDate }) {
+  const rowRef = useRef(null);
+
+  const scroll = (direction) => {
+    if (rowRef.current) {
+      const { scrollLeft, clientWidth } = rowRef.current;
+      const scrollAmount = clientWidth * 0.75;
+      rowRef.current.scrollTo({
+        left: direction === 'left' ? scrollLeft - scrollAmount : scrollLeft + scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  return (
+    <div className="category-row">
+      <h2 className="category-title">{category}</h2>
+      <div className="slider-wrapper">
+        <button className="slider-arrow left" onClick={() => scroll('left')}>‹</button>
+        <div className="slider-container" ref={rowRef}>
+          {articles.map((art) => (
+            <div key={art._id} className="card" onClick={() => onSelectArticle(art)}>
+              <div className="card-title">{art.title}</div>
+              <div className="card-author">By {art.author} {art.createdAt && `• ${formatDate(art.createdAt)}`}</div>
+            </div>
+          ))}
+        </div>
+        <button className="slider-arrow right" onClick={() => scroll('right')}>›</button>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [articles, setArticles] = useState([]);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ title: '', author: '', content: '' });
-  
-  // Search state
+  const [formData, setFormData] = useState({ title: '', author: '', content: '', tags: '' });
   const [searchTerm, setSearchTerm] = useState('');
 
   const formatDate = (dateString) => {
@@ -34,13 +66,19 @@ export default function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : ['General']
+      };
+
       const res = await fetch('/api/articles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
+
       if (res.ok) {
-        setFormData({ title: '', author: '', content: '' });
+        setFormData({ title: '', author: '', content: '', tags: '' });
         setShowModal(false);
         fetchArticles();
       }
@@ -49,32 +87,41 @@ export default function App() {
     }
   };
 
-  // Filter articles based on search term
+  // Filter articles based on search query
   const filteredArticles = articles.filter((art) => {
     const query = searchTerm.toLowerCase();
+    const tagMatches = art.tags?.some(t => t.toLowerCase().includes(query));
     return (
       art.title?.toLowerCase().includes(query) ||
       art.author?.toLowerCase().includes(query) ||
-      art.content?.toLowerCase().includes(query)
+      art.content?.toLowerCase().includes(query) ||
+      tagMatches
     );
   });
+
+  // Group filtered articles by unique tags
+  const groupedArticles = filteredArticles.reduce((acc, article) => {
+    const tags = article.tags && article.tags.length > 0 ? article.tags : ['General'];
+    tags.forEach((tag) => {
+      if (!acc[tag]) acc[tag] = [];
+      acc[tag].push(article);
+    });
+    return acc;
+  }, {});
 
   return (
     <div>
       <nav className="navbar">
         <div className="logo" onClick={() => { setSelectedArticle(null); setSearchTerm(''); }}>TECHFLIX</div>
-        
-        {/* Search Input in Navbar */}
         <div className="search-box">
           <input
             type="text"
-            placeholder="Search articles..."
+            placeholder="Search titles, tags, content..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
           />
         </div>
-
         <button className="add-btn" onClick={() => setShowModal(true)}>+ Add Article</button>
       </nav>
 
@@ -83,7 +130,16 @@ export default function App() {
           <div className="detail-view">
             <button className="back-btn" onClick={() => setSelectedArticle(null)}>← Back to Catalog</button>
             <h1 className="detail-title">{selectedArticle.title}</h1>
-            <div className="detail-meta">By {selectedArticle.author} • {formatDate(selectedArticle.createdAt)}</div>
+            <div className="detail-meta">
+              By {selectedArticle.author} • {formatDate(selectedArticle.createdAt)}
+            </div>
+            {selectedArticle.tags && (
+              <div className="tag-list">
+                {selectedArticle.tags.map((tag, idx) => (
+                  <span key={idx} className="tag-badge">{tag}</span>
+                ))}
+              </div>
+            )}
             <p className="detail-content">{selectedArticle.content}</p>
           </div>
         ) : (
@@ -92,22 +148,19 @@ export default function App() {
               <h1>Tech Articles</h1>
               <p>Get the tech info you need.</p>
             </div>
-            
-            <h2 className="section-title">
-              {searchTerm ? `Search Results for "${searchTerm}"` : 'Trending Articles'}
-            </h2>
 
-            {filteredArticles.length === 0 ? (
-              <p className="no-results">No articles found matching your search.</p>
+            {Object.keys(groupedArticles).length === 0 ? (
+              <p className="no-results">No articles found matching your query.</p>
             ) : (
-              <div className="grid">
-                {filteredArticles.map((art) => (
-                  <div key={art._id} className="card" onClick={() => setSelectedArticle(art)}>
-                    <div className="card-title">{art.title}</div>
-                    <div className="card-author">By {art.author} {art.createdAt && `• ${formatDate(art.createdAt)}`}</div>
-                  </div>
-                ))}
-              </div>
+              Object.entries(groupedArticles).map(([category, categoryArticles]) => (
+                <CategoryRow
+                  key={category}
+                  category={category}
+                  articles={categoryArticles}
+                  onSelectArticle={setSelectedArticle}
+                  formatDate={formatDate}
+                />
+              ))
             )}
           </>
         )}
@@ -125,6 +178,10 @@ export default function App() {
               <div className="form-group">
                 <label>Author</label>
                 <input type="text" required value={formData.author} onChange={(e) => setFormData({ ...formData, author: e.target.value })} />
+              </div>
+              <div className="form-group">
+                <label>Category Tags (comma-separated, e.g. React, Kubernetes)</label>
+                <input type="text" placeholder="DevOps, React, Cloud" value={formData.tags} onChange={(e) => setFormData({ ...formData, tags: e.target.value })} />
               </div>
               <div className="form-group">
                 <label>Content</label>
