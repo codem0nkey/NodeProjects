@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Reusable Category Row with Navigation Arrows
+// Reusable Netflix-style Category Row
 function CategoryRow({ category, articles, onSelectArticle, formatDate }) {
   const rowRef = useRef(null);
 
@@ -66,14 +66,17 @@ export default function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        ...formData,
-        tags: formData.tags
-          ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
-          : ['General']
-      };
+      // Split comma-separated string into clean array
+      const parsedTags = formData.tags
+        ? formData.tags.split(',').map(t => t.trim()).filter(Boolean)
+        : ['General'];
 
-      console.log('Submitting Payload:', payload);
+      const payload = {
+        title: formData.title,
+        author: formData.author,
+        content: formData.content,
+        tags: parsedTags.length > 0 ? parsedTags : ['General']
+      };
 
       const res = await fetch('/api/articles', {
         method: 'POST',
@@ -84,17 +87,17 @@ export default function App() {
       if (res.ok) {
         setFormData({ title: '', author: '', content: '', tags: '' });
         setShowModal(false);
-        fetchArticles();
+        fetchArticles(); // Refresh catalog after posting
       }
     } catch (err) {
       console.error('Failed to save article', err);
     }
   };
 
-  // Filter articles based on search query
+  // Filter articles by search term
   const filteredArticles = articles.filter((art) => {
     const query = searchTerm.toLowerCase();
-    const articleTags = Array.isArray(art.tags) ? art.tags : ['General'];
+    const articleTags = Array.isArray(art.tags) && art.tags.length > 0 ? art.tags : ['General'];
     const tagMatches = articleTags.some(t => String(t).toLowerCase().includes(query));
 
     return (
@@ -105,7 +108,7 @@ export default function App() {
     );
   });
 
-  // Group filtered articles by unique tags
+  // Group filtered articles into distinct categories by tag
   const groupedArticles = filteredArticles.reduce((acc, article) => {
     const rawTags = Array.isArray(article.tags) && article.tags.length > 0 ? article.tags : ['General'];
     const uniqueTags = [...new Set(rawTags.map(t => String(t).trim()).filter(Boolean))];

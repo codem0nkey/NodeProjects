@@ -12,7 +12,7 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// 1. Explicit schema definition
+// 1. Schema definition
 const articleSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String, required: true },
@@ -23,7 +23,10 @@ const articleSchema = new mongoose.Schema({
   strict: false
 });
 
-// Clear cached model if it exists
+// Force-add tags to schema in case Mongoose cached a compiled version
+articleSchema.add({ tags: { type: [String], default: ['General'] } });
+
+// Clear cached models if re-registering
 if (mongoose.models.Article) {
   delete mongoose.models.Article;
 }
@@ -43,6 +46,8 @@ app.get('/api/articles', async (req, res) => {
 // POST /api/articles
 app.post('/api/articles', async (req, res) => {
   try {
+    console.log('Incoming POST body:', req.body);
+
     const { title, content, author, tags } = req.body;
 
     if (!title || !content || !author) {
@@ -57,16 +62,17 @@ app.post('/api/articles', async (req, res) => {
       parsedTags = tags.split(',').map(t => t.trim()).filter(Boolean);
     }
 
-    const newArticle = new Article({
+    if (parsedTags.length === 0) parsedTags = ['General'];
+
+    // Use Article.create() with explicit object definition
+    const savedArticle = await Article.create({
       title,
       content,
       author,
       tags: parsedTags
     });
 
-    const savedArticle = await newArticle.save();
-    console.log('Document inserted in DB:', savedArticle);
-
+    console.log('Saved document in DB:', savedArticle);
     res.status(201).json(savedArticle);
   } catch (err) {
     console.error('POST Error:', err);
