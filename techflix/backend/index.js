@@ -22,6 +22,8 @@ const articleSchema = new mongoose.Schema({
   timestamps: true // Mongoose automatically manages createdAt and updatedAt
 });
 
+articleSchema.index({ title: 'text', content: 'text' });
+
 const Article = mongoose.model('Article', articleSchema);
 
 // GET /api/articles
@@ -31,6 +33,25 @@ app.get('/api/articles', async (req, res) => {
     res.json(articles);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Updated Search Route using the Text Index
+app.get('/api/articles/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    // Uses the text index for fast full-text searching
+    const articles = await Article.find({
+      $text: { $search: q }
+    });
+
+    res.json(articles);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

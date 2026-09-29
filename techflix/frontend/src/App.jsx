@@ -5,6 +5,9 @@ export default function App() {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({ title: '', author: '', content: '' });
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No Date';
@@ -46,10 +49,32 @@ export default function App() {
     }
   };
 
+  // Filter articles based on search term
+  const filteredArticles = articles.filter((art) => {
+    const query = searchTerm.toLowerCase();
+    return (
+      art.title?.toLowerCase().includes(query) ||
+      art.author?.toLowerCase().includes(query) ||
+      art.content?.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div>
       <nav className="navbar">
-        <div className="logo" onClick={() => setSelectedArticle(null)}>TECHFLIX</div>
+        <div className="logo" onClick={() => { setSelectedArticle(null); setSearchTerm(''); }}>TECHFLIX</div>
+        
+        {/* Search Input in Navbar */}
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Search articles..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+        </div>
+
         <button className="add-btn" onClick={() => setShowModal(true)}>+ Add Article</button>
       </nav>
 
@@ -67,15 +92,23 @@ export default function App() {
               <h1>Tech Articles</h1>
               <p>Get the tech info you need.</p>
             </div>
-            <h2 className="section-title">Trending Articles</h2>
-            <div className="grid">
-              {articles.map((art) => (
-                <div key={art._id} className="card" onClick={() => setSelectedArticle(art)}>
-                  <div className="card-title">{art.title}</div>
-                  <div className="card-author">By {art.author} {art.createdAt && `• ${formatDate(art.createdAt)}`}</div>
-                </div>
-              ))}
-            </div>
+            
+            <h2 className="section-title">
+              {searchTerm ? `Search Results for "${searchTerm}"` : 'Trending Articles'}
+            </h2>
+
+            {filteredArticles.length === 0 ? (
+              <p className="no-results">No articles found matching your search.</p>
+            ) : (
+              <div className="grid">
+                {filteredArticles.map((art) => (
+                  <div key={art._id} className="card" onClick={() => setSelectedArticle(art)}>
+                    <div className="card-title">{art.title}</div>
+                    <div className="card-author">By {art.author} {art.createdAt && `• ${formatDate(art.createdAt)}`}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>

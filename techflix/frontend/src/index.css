@@ -26,3 +26,22 @@ body { background-color: #141414; color: #ffffff; font-family: 'Helvetica Neue',
 .form-group textarea { height: 120px; resize: vertical; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .cancel-btn { background: transparent; color: #aaa; border: none; padding: 8px 16px; cursor: pointer; }
+
+.search-input {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  width: 250px;
+  outline: none;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  border-color: #0070f3;
+}
+
+.no-results {
+  text-align: center;
+  color: #888;
+  margin-top: 2rem;
+}
