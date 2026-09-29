@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './index.css';
 
 // Reusable Netflix-style Category Row
 function CategoryRow({ category, articles, onSelectArticle, onTagClick, formatDate }) {
@@ -18,7 +19,7 @@ function CategoryRow({ category, articles, onSelectArticle, onTagClick, formatDa
   return (
     <div className="category-row">
       <div className="category-header">
-        <h2 className="category-title" onClick={() => onTagClick(category)} style={{ cursor: 'pointer' }}>
+        <h2 className="category-title" onClick={() => onTagClick(category)}>
           {category} <span className="category-arrow">›</span>
         </h2>
       </div>
@@ -34,6 +35,108 @@ function CategoryRow({ category, articles, onSelectArticle, onTagClick, formatDa
         </div>
         <button className="slider-arrow right" onClick={() => scroll('right')}>›</button>
       </div>
+    </div>
+  );
+}
+
+// Dynamic Featured Hero Banner
+// Interactive Multi-Article Hero Carousel
+function HeroBanner({ articles, onSelectArticle, onTagClick, formatDate }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Select up to 4 articles for the hero carousel
+  const featuredArticles = articles.slice(0, 4);
+
+  // Auto-advance slide every 6 seconds
+  useEffect(() => {
+    if (featuredArticles.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % featuredArticles.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [featuredArticles.length]);
+
+  if (featuredArticles.length === 0) return null;
+
+  const currentArticle = featuredArticles[currentIndex];
+
+  const handleNext = () => {
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % featuredArticles.length);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + featuredArticles.length) % featuredArticles.length);
+  };
+
+  // Calculate read time (~200 wpm)
+  const wordCount = currentArticle.content ? currentArticle.content.trim().split(/\s+/).length : 0;
+  const readTime = Math.max(1, Math.ceil(wordCount / 200));
+
+  return (
+    <div className="hero-featured">
+      <div className="hero-overlay"></div>
+      
+      {/* Slide Navigation Arrows */}
+      {featuredArticles.length > 1 && (
+        <>
+          <button className="hero-nav-btn prev" onClick={handlePrev} title="Previous Article">‹</button>
+          <button className="hero-nav-btn next" onClick={handleNext} title="Next Article">›</button>
+        </>
+      )}
+
+      <div className="hero-content" key={currentArticle._id}>
+        <div className="hero-badge-featured">
+          FEATURED ARTICLE ({currentIndex + 1}/{featuredArticles.length})
+        </div>
+        <h1 className="hero-title">{currentArticle.title}</h1>
+        
+        <div className="hero-meta">
+          <span>By {currentArticle.author}</span>
+          <span className="bullet">•</span>
+          <span>{formatDate(currentArticle.createdAt)}</span>
+          <span className="bullet">•</span>
+          <span>{readTime} min read</span>
+        </div>
+
+        {Array.isArray(currentArticle.tags) && currentArticle.tags.length > 0 && (
+          <div className="hero-tags">
+            {currentArticle.tags.map((tag, idx) => (
+              <span
+                key={idx}
+                className="tag-badge clickable"
+                onClick={() => onTagClick(tag)}
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <p className="hero-excerpt">
+          {currentArticle.content.length > 220 
+            ? `${currentArticle.content.substring(0, 220)}...` 
+            : currentArticle.content}
+        </p>
+
+        <div className="hero-actions">
+          <button className="btn-primary" onClick={() => onSelectArticle(currentArticle)}>
+            ▶ Read Article
+          </button>
+        </div>
+      </div>
+
+      {/* Pagination Dots */}
+      {featuredArticles.length > 1 && (
+        <div className="hero-dots">
+          {featuredArticles.map((_, idx) => (
+            <span
+              key={idx}
+              className={`hero-dot ${idx === currentIndex ? 'active' : ''}`}
+              onClick={() => setCurrentIndex(idx)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -67,7 +170,6 @@ export default function App() {
 
   useEffect(() => { fetchArticles(); }, []);
 
-  // Filter and reset back to main view when a tag is clicked
   const handleTagClick = (tagName) => {
     setSelectedArticle(null);
     setSearchTerm(tagName);
@@ -103,7 +205,7 @@ export default function App() {
     }
   };
 
-  // Filter articles by search term or tag
+  // Filter articles by search term
   const filteredArticles = articles.filter((art) => {
     const query = searchTerm.toLowerCase();
     const articleTags = Array.isArray(art.tags) && art.tags.length > 0 ? art.tags : ['General'];
@@ -130,6 +232,9 @@ export default function App() {
     });
     return acc;
   }, {});
+
+  // Pick featured article (newest overall)
+  const featuredArticle = articles.length > 0 ? articles[0] : null;
 
   return (
     <div>
@@ -167,7 +272,6 @@ export default function App() {
                     className="tag-badge clickable"
                     onClick={() => handleTagClick(tag)}
                     title={`Filter articles by ${tag}`}
-                    style={{ cursor: 'pointer' }}
                   >
                     {tag}
                   </span>
@@ -179,14 +283,22 @@ export default function App() {
           </div>
         ) : (
           <>
-            <div className="hero-banner">
-              <h1>Tech Articles</h1>
-              {searchTerm ? (
-                <p>Showing articles tagged with: <strong>"{searchTerm}"</strong></p>
-              ) : (
-                <p>Get the tech info you need.</p>
-              )}
-            </div>
+            {/* Render Hero Carousel when not actively searching */}
+            {!searchTerm && articles.length > 0 && (
+              <HeroBanner
+                articles={articles}
+                onSelectArticle={setSelectedArticle}
+                onTagClick={handleTagClick}
+                formatDate={formatDate}
+              />
+            )}
+
+            {searchTerm && (
+              <div className="search-results-header">
+                <h2>Showing results for: "{searchTerm}"</h2>
+                <button className="back-btn" onClick={() => setSearchTerm('')}>Clear Filter</button>
+              </div>
+            )}
 
             {Object.keys(groupedArticles).length === 0 ? (
               <div className="no-results">
