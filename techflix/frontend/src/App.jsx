@@ -1,7 +1,42 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './index.css';
 
-// Reusable Netflix-style Category Row
+// Helper function to generate a consistent tech image URL per article
+// Curated list of specific technology / abstract / dark-themed image IDs from Picsum
+const PICSUM_TECH_IDS = [
+  0,    // Laptop / Workstation
+  1,    // Laptop / Code workspace
+  2,    // Laptop setup
+  3,    // Devices / Workspace
+  4,    // Laptop & Notebook
+  6,    // Abstract dark tech
+  7,
+  8,
+  180,  // Laptop / Workspace setup
+  366,  // Abstract dark geometric
+  445,  // Dark moody tech scene
+  532,  // Hardware / Abstract dark
+  1060, // Coffee & Code setup
+];
+
+const getArticleImage = (article) => {
+  const str = article._id || article.title || 'tech';
+  
+  // Calculate a simple hash code from the ID or title string
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Select a deterministic tech photo ID
+  const index = Math.abs(hash) % PICSUM_TECH_IDS.length;
+  const imageId = PICSUM_TECH_IDS[index];
+
+  // Return crisp 600x350 thumbnail URL directly from Picsum
+  return `https://picsum.photos/id/${imageId}/600/350`;
+};
+
+// Reusable Netflix-style Category Row with Image Cards
 function CategoryRow({ category, articles, onSelectArticle, onTagClick, formatDate }) {
   const rowRef = useRef(null);
 
@@ -28,8 +63,19 @@ function CategoryRow({ category, articles, onSelectArticle, onTagClick, formatDa
         <div className="slider-container" ref={rowRef}>
           {articles.map((art) => (
             <div key={art._id} className="card" onClick={() => onSelectArticle(art)}>
-              <div className="card-title">{art.title}</div>
-              <div className="card-author">By {art.author} {art.createdAt && `• ${formatDate(art.createdAt)}`}</div>
+              <div className="card-image-container">
+                <img 
+                  src={getArticleImage(art)} 
+                  alt={art.title} 
+                  className="card-image"
+                  loading="lazy" 
+                />
+                <div className="card-image-overlay"></div>
+              </div>
+              <div className="card-body">
+                <div className="card-title">{art.title}</div>
+                <div className="card-author">By {art.author} {art.createdAt && `• ${formatDate(art.createdAt)}`}</div>
+              </div>
             </div>
           ))}
         </div>
@@ -39,15 +85,11 @@ function CategoryRow({ category, articles, onSelectArticle, onTagClick, formatDa
   );
 }
 
-// Dynamic Featured Hero Banner
-// Interactive Multi-Article Hero Carousel
+// Multi-Article Hero Carousel with Dynamic Background Image
 function HeroBanner({ articles, onSelectArticle, onTagClick, formatDate }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // Select up to 4 articles for the hero carousel
   const featuredArticles = articles.slice(0, 4);
 
-  // Auto-advance slide every 6 seconds
   useEffect(() => {
     if (featuredArticles.length <= 1) return;
     const timer = setInterval(() => {
@@ -59,28 +101,34 @@ function HeroBanner({ articles, onSelectArticle, onTagClick, formatDate }) {
   if (featuredArticles.length === 0) return null;
 
   const currentArticle = featuredArticles[currentIndex];
-
-  const handleNext = () => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % featuredArticles.length);
-  };
-
-  const handlePrev = () => {
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + featuredArticles.length) % featuredArticles.length);
-  };
-
-  // Calculate read time (~200 wpm)
   const wordCount = currentArticle.content ? currentArticle.content.trim().split(/\s+/).length : 0;
   const readTime = Math.max(1, Math.ceil(wordCount / 200));
 
+  const bgImage = getArticleImage(currentArticle);
+
   return (
-    <div className="hero-featured">
+    <div 
+      className="hero-featured" 
+      style={{ backgroundImage: `url(${bgImage})` }}
+    >
       <div className="hero-overlay"></div>
-      
-      {/* Slide Navigation Arrows */}
+
       {featuredArticles.length > 1 && (
         <>
-          <button className="hero-nav-btn prev" onClick={handlePrev} title="Previous Article">‹</button>
-          <button className="hero-nav-btn next" onClick={handleNext} title="Next Article">›</button>
+          <button 
+            className="hero-nav-btn prev" 
+            onClick={() => setCurrentIndex((prev) => (prev - 1 + featuredArticles.length) % featuredArticles.length)}
+            title="Previous Article"
+          >
+            ‹
+          </button>
+          <button 
+            className="hero-nav-btn next" 
+            onClick={() => setCurrentIndex((prev) => (prev + 1) % featuredArticles.length)}
+            title="Next Article"
+          >
+            ›
+          </button>
         </>
       )}
 
@@ -101,11 +149,7 @@ function HeroBanner({ articles, onSelectArticle, onTagClick, formatDate }) {
         {Array.isArray(currentArticle.tags) && currentArticle.tags.length > 0 && (
           <div className="hero-tags">
             {currentArticle.tags.map((tag, idx) => (
-              <span
-                key={idx}
-                className="tag-badge clickable"
-                onClick={() => onTagClick(tag)}
-              >
+              <span key={idx} className="tag-badge clickable" onClick={() => onTagClick(tag)}>
                 {tag}
               </span>
             ))}
@@ -125,7 +169,6 @@ function HeroBanner({ articles, onSelectArticle, onTagClick, formatDate }) {
         </div>
       </div>
 
-      {/* Pagination Dots */}
       {featuredArticles.length > 1 && (
         <div className="hero-dots">
           {featuredArticles.map((_, idx) => (
@@ -205,7 +248,7 @@ export default function App() {
     }
   };
 
-  // Filter articles by search term
+  // Filter articles by search term or tag
   const filteredArticles = articles.filter((art) => {
     const query = searchTerm.toLowerCase();
     const articleTags = Array.isArray(art.tags) && art.tags.length > 0 ? art.tags : ['General'];
@@ -232,9 +275,6 @@ export default function App() {
     });
     return acc;
   }, {});
-
-  // Pick featured article (newest overall)
-  const featuredArticle = articles.length > 0 ? articles[0] : null;
 
   return (
     <div>
@@ -283,7 +323,7 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* Render Hero Carousel when not actively searching */}
+            {/* Display Hero Carousel when not actively searching */}
             {!searchTerm && articles.length > 0 && (
               <HeroBanner
                 articles={articles}
